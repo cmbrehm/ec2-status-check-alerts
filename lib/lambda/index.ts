@@ -3,14 +3,19 @@ import { EC2, EventBridge } from 'aws-sdk'
 const ec2 = new EC2();
 
 const EVENT_KEY= process.env.EVENT_KEY;
+
+export function statusOK(i:any):boolean {
+  return (i?.Status!='ok' || i?.Status != 'initializing')
+}
+
 export const handler = async(_:any) => {
   if (!EVENT_KEY)
     throw new Error("please set process.env.EVENT_KEY")
-    
+
   const { InstanceStatuses } = await ec2.describeInstanceStatus().promise()
   if (!!InstanceStatuses) {
     //const NotOK = InstanceStatuses.filter((i)=>i.InstanceStatus!='ok' || i.SystemStatus!='ok' )
-    const NotOK = InstanceStatuses.filter((i)=>i.InstanceStatus?.Status!='ok' || i.SystemStatus?.Status!='ok' )
+    const NotOK = InstanceStatuses.filter((i)=> ! (statusOK(i.InstanceStatus) && statusOK(i.SystemStatus)))
     if (!(NotOK && NotOK.length>0)) {
       console.log("no failed status checks")
       return;
